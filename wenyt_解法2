@@ -1,0 +1,114 @@
+MODULE share_data
+REAL::L,rou,lamda,u,fai0,faiL  !fai0,faiL边界条件
+INTEGER::K   !网格数
+REAL::x         !网格间距
+REAL::P,D,F     !P=F/D,F=rou*u,D=lamda/x
+REAL::w        !松弛因子
+END MODULE                     !共享数据
+
+REAL FUNCTION select_bigger(x,y)   !max()函数
+IMPLICIT NONE
+REAL,INTENT(IN)::x,y
+IF(x>y) THEN
+select_bigger=x
+ELSE  
+select_bigger=y
+END IF
+END FUNCTION
+    
+REAL FUNCTION A1(P)               !三种系数函数,中心差分格式
+IMPLICIT NONE
+REAL,INTENT(IN)::P
+REAL::select_bigger
+A1=1.0-0.5*ABS(P)+select_bigger(-P,0.0)
+END FUNCTION A1
+    
+REAL FUNCTION A2(P)              !迎风格式
+IMPLICIT NONE
+REAL,INTENT(IN)::P
+REAL::select_bigger
+A2=1.0+select_bigger(-P,0.0)
+END FUNCTION A2
+
+
+REAL FUNCTION A3(P)              !混合格式
+IMPLICIT NONE
+REAL,INTENT(IN)::P
+REAL::select_bigger
+A3=select_bigger(0.0,1.0-0.5*ABS(P))+select_bigger(-P,0.0)
+    END FUNCTION A3   
+
+SUBROUTINE pattern_gauss_siedal(fai,A)          !求解线性方程组，fai为输出量，A为系数函数A（P) 
+USE share_data
+IMPLICIT NONE
+REAL,INTENT(OUT)::fai(K)
+REAL,EXTERNAL::A
+INTEGER::i,j
+REAL::fai_former(K)
+fai=0.0
+fai_former=1.0
+DO                                  !高斯—塞达尔迭代解法
+fai(1)=(A(P)*fai(2)/(A(P)+P+2.0)+(P+2.0)*fai0/(A(P)+P+2.0))*w+fai(1)*(1-w)
+DO i=2,K-1
+fai(i)=((A(P)+P)*fai(i-1)/(2.0*A(P)+P)+A(P)*fai(i+1)/(2.0*A(P)+P))*w+fai(i)*(1-w)
+END DO
+fai(K)=((A(P)+P)*fai(K-1)/(A(P)+2.0)-(P-2)*faiL/(A(P)+2.0))*w+fai(K)*(1-w)
+IF (maxval(abs(fai-fai_former))<0.000001) exit              !收敛条件
+fai_former=fai
+END DO                                       
+END SUBROUTINE pattern_gauss_siedal  
+
+
+PROGRAM Convection_diffusion       
+USE share_data
+IMPLICIT NONE
+REAL,EXTERNAL::A1,A2,A3
+INTEGER::j
+REAL,ALLOCATABLE,DIMENSION(:)::z
+REAL,ALLOCATABLE,DIMENSION(:)::fai1,fai2,fai3,fai4     !1中心差分，2迎风格式，3混合格式 4解析解
+REAL::time_begin,time_over
+WRITE(*,*)'输入网格数'
+READ(*,*) K
+WRITE(*,*)'输入速度'
+READ(*,*) u
+WRITE(*,*)'松弛因子'
+READ(*,*) w
+Call CPU_TIME(time_begin)
+ALLOCATE(z(K))
+ALLOCATE(fai1(K))
+ALLOCATE(fai2(K))
+ALLOCATE(fai3(K))
+ALLOCATE(fai4(K))
+L=1.0
+rou=1.0
+lamda=0.1
+fai0=1.0
+faiL=0.0
+x=L/K
+F=rou*u
+D=lamda/x
+P=F/D
+CALL pattern_gauss_siedal(fai1,A1)    !高斯塞达尔法，求三种格式线性方程组
+CALL pattern_gauss_siedal(fai2,A2)
+CALL pattern_gauss_siedal(fai3,A3)
+DO j=1,K
+z(j)=(j-0.5)*x
+fai4(j)=1.0-(exp(F*z(j)/lamda)-1.0)/(exp(F*L/lamda)-1.0)
+end DO
+CALL CPU_TIME(time_over)
+Do j=1,K
+WRITE(*,*) z(j),fai1(j),fai2(j),fai3(j),fai4(j)
+END DO
+WRITE(*,*) '运行时间',time_over-time_begin
+open(1,file='test.out',mode ='write')
+Do j=1,K
+WRITE(1,*) z(j),fai1(j),fai2(j),fai3(j),fai4(j)
+END DO
+close(1)
+DEALLOCATE(z)
+DEALLOCATE(fai1)
+DEALLOCATE(fai2)
+DEALLOCATE(fai3)
+DEALLOCATE(fai4)
+END PROGRAM convection_diffusion
+    
