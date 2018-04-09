@@ -54,7 +54,7 @@ left(K-1)=-P-A(P)
 b(K)=(2-P)*faiL
 DO i=2,K-1
 diag(i)=2*A(P)+P
-right(i-1)=-A(P)
+right(i)=-A(P)
 left(i-1)=-A(P)-P
 b(i)=0
 END DO
@@ -76,10 +76,12 @@ REAL,EXTERNAL::A1,A2,A3
 REAL::j
 REAL,ALLOCATABLE,DIMENSION(:)::z
 REAL,ALLOCATABLE,DIMENSION(:)::fai1,fai2,fai3,fai4     !1中心差分，2迎风格式，3混合格式 4解析解
+REAL::time_begin,time_over
 WRITE(*,*)'输入网格数'
 READ(*,*) K
 WRITE(*,*)'输入速度'
 READ(*,*)u
+CALL CPU_TIME(time_begin)
 ALLOCATE(fai1(K))
 ALLOCATE(fai2(K))
 ALLOCATE(fai3(K))
@@ -101,16 +103,24 @@ DO j=1,K
 z(j)=(j-0.5)*x
 fai4(j)=1.0-(exp(F*z(j)/lamda)-1.0)/(exp(F*L/lamda)-1.0)
 end DO
+CALL CPU_TIME(time_over)
+WRITE(*,*) '    坐标     ', '    中心差分    ','  迎风格式    ','    混合格式    ','  解析解    '
+Do j=1,K
+WRITE(*,*) z(j),fai1(j),fai2(j),fai3(j),fai4(j)
+END DO
 open(1,file='test.out',mode ='write')
 WRITE(1,*) '    坐标     ', '    中心差分    ','  迎风格式    ','    混合格式    ','  解析解    '
 Do j=1,K
 WRITE(1,*) z(j),fai1(j),fai2(j),fai3(j),fai4(j)
 END DO
 close(1)
+WRITE(*,*)'运行时间',time_over-time_begin
 DEALLOCATE(z)
 DEALLOCATE(fai1)
 DEALLOCATE(fai2)
 DEALLOCATE(fai3)
 DEALLOCATE(fai4)
 END PROGRAM convection_diffusion
+    
+
     
