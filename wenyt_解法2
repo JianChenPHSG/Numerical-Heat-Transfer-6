@@ -48,11 +48,11 @@ REAL::fai_former(K)
 fai=0.0
 fai_former=1.0
 DO                                  !高斯—塞达尔迭代解法
-fai(1)=(A(P)*fai(2)/(A(P)+P+2.0)+(P+2.0)*fai0/(A(P)+P+2.0))*w+fai(1)*(1-w)
+fai(1)=(A(P)*fai(2)/(A(P)+P+2.0*A(P/2.0))+(P+2.0*A(P/2.0))*fai0/(A(P)+P+2.0*A(P/2.0)))*w+fai(1)*(1-w)
 DO i=2,K-1
 fai(i)=((A(P)+P)*fai(i-1)/(2.0*A(P)+P)+A(P)*fai(i+1)/(2.0*A(P)+P))*w+fai(i)*(1-w)
 END DO
-fai(K)=((A(P)+P)*fai(K-1)/(A(P)+2.0)-(P-2)*faiL/(A(P)+2.0))*w+fai(K)*(1-w)
+fai(K)=((A(P)+P)*fai(K-1)/(A(P)+P+2.0*A(P/2.0))+2*A(P/2.0)*faiL/(A(P)+P+2.0*A(P/2.0)))*w+fai(K)*(1-w)
 IF (maxval(abs(fai-fai_former))<0.000001) exit              !收敛条件
 fai_former=fai
 END DO                                       
@@ -102,7 +102,7 @@ END DO
 WRITE(*,*) '运行时间',time_over-time_begin
 open(1,file='test.out',mode ='write')
 Do j=1,K
-WRITE(1,*) z(j),fai1(j),fai2(j),fai3(j),fai4(j)
+WRITE(1,*) z(j),fai1(j),fai2(j),fai3(j),fai4(j),(fai1(j)-fai4(j))/fai4(j)
 END DO
 close(1)
 DEALLOCATE(z)
@@ -111,4 +111,3 @@ DEALLOCATE(fai2)
 DEALLOCATE(fai3)
 DEALLOCATE(fai4)
 END PROGRAM convection_diffusion
-    
