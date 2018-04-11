@@ -46,12 +46,12 @@ REAL,INTENT(OUT)::fai(K)
 REAL,EXTERNAL::A
 REAL::diag(K),right(K-1),left(K-1),b(K)
 INTEGER::i
-diag(1)=2+A(P)+P
+diag(1)=2.0*A(P/2.0)+A(P)+P
 right(1)=-A(P)
-b(1)=(P+2)*fai0
-diag(K)=A(P)+2
+b(1)=2.0*(P/2.0+A(P/2.0))*fai0
+diag(K)=A(P)+2.0*A(P/2.0)+P
 left(K-1)=-P-A(P)
-b(K)=(2-P)*faiL
+b(K)=2.0*A(P/2.0)*faiL
 DO i=2,K-1
 diag(i)=2*A(P)+P
 right(i)=-A(P)
@@ -121,6 +121,4 @@ DEALLOCATE(fai2)
 DEALLOCATE(fai3)
 DEALLOCATE(fai4)
 END PROGRAM convection_diffusion
-    
-
     
